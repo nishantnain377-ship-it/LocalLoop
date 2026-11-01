@@ -11,6 +11,15 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must contain at least 6 characters"),
 });
 
+// Shared cookie configuration for production and development
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: "/",
+};
+
 // Register a new user
 const registerUser = async (req, res) => {
   try {
@@ -113,13 +122,8 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    // Set HTTP-only authentication cookie
+    res.cookie("token", token, cookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -165,12 +169,9 @@ const getCurrentUser = async (req, res) => {
 
 // Logout user
 const logoutUser = (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
+  const { maxAge, ...clearCookieOptions } = cookieOptions;
+
+  res.clearCookie("token", clearCookieOptions);
 
   return res.status(200).json({
     success: true,
@@ -184,3 +185,4 @@ module.exports = {
   getCurrentUser,
   logoutUser,
 };
+
